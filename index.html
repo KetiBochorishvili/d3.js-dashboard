@@ -13,23 +13,187 @@
 <body translate="no">
 
     <div class="page-container">
-        <div id="graph-container"></div>
+        <div class="dashboard-container">
+            <!-- Top Row: Two containers side by side -->
+            <div class="top-row">
+                <div class="chart-container" id="container-1">
+                    <h2 class="chart-title">Weekly Study Time vs Average Math Grade</h2>
+                    <div class="chart-content" id="chart-1"></div>
+                </div>
+                <div class="chart-container" id="container-2">
+                    <h2 class="chart-title">Number of School Absences vs Math Final Grade</h2>
+                    <div class="chart-content" id="chart-2"></div>
+                </div>
+            </div>
+            <!-- Bottom Row: One full-width container -->
+            <div class="bottom-row">
+                <div class="chart-container" id="container-3">
+                    <h2 class="chart-title">Behavioral Patterns by Alcohol Consumption</h2>
+                    <div class="chart-content" id="chart-3"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="libs/d3.v7.min.js"></script>
     <script src="scripts/d3chart.js"></script>
+    <script src="scripts/chart1.js"></script>
+    <script src="scripts/chart2.js"></script>
+    <script src="scripts/chart3.js"></script>
 
     <script>
-        let chart;
-        d3.json('data/data.json')
-            .then(data => {
-                chart = new Chart()
-                    .svgHeight(window.innerHeight - 30)
-                    .svgWidth(window.innerWidth - 30)
-                    .container('#graph-container')
-                    .data(data)
-                    .render()
-            })
+        // Dashboard initialization and resize handling
+        let charts = {};
+        let rawData = null; // Store loaded data globally
+        
+        // Load CSV data once
+        async function loadData() {
+            if (!rawData) {
+                try {
+                    rawData = await d3.csv('student-mat.csv');
+                    console.log('Data loaded successfully:', rawData.length, 'rows');
+                } catch (error) {
+                    console.error('Error loading CSV data:', error);
+                }
+            }
+            return rawData;
+        }
+        
+        // Process data for Chart 1: Average G3 by Study Time
+        function processChart1Data(data) {
+            const groupedData = d3.rollup(
+                data,
+                v => d3.mean(v, d => +d.G3), // Calculate mean of G3
+                d => +d.studytime // Group by studytime
+            );
+            
+            return Array.from(groupedData, ([studytime, avgG3]) => ({
+                studytime: studytime,
+                avgG3: avgG3
+            })).sort((a, b) => a.studytime - b.studytime);
+        }
+        
+        // Process data for Chart 2: Scatterplot of absences vs G3 by travel time
+        function processChart2Data(data) {
+            return data.map(d => ({
+                absences: +d.absences,
+                G3: +d.G3,
+                traveltime: +d.traveltime,
+                traveltimeGroup: (+d.traveltime === 1 || +d.traveltime === 2) ? 'Close' : 'Far' // Close if 1 or 2, Far if 3 or 4
+            })).filter(d => !isNaN(d.absences) && !isNaN(d.G3) && !isNaN(d.traveltime)); // Filter out invalid data
+        }
+        
+        // Process data for Chart 3: Parallel Coordinates
+        function processChart3Data(data) {
+            return data.map(d => ({
+                health: +d.health,
+                studytime: +d.studytime,
+                absences: +d.absences,
+                failures: +d.failures,
+                famrel: +d.famrel,
+                G3: +d.G3, // Add G3 as a dimension
+                Dalc: +d.Dalc, // Keep for color coding
+                sex: d.sex,
+                address: d.address
+            })).filter(d => 
+                !isNaN(d.health) && !isNaN(d.studytime) && !isNaN(d.absences) && 
+                !isNaN(d.failures) && !isNaN(d.famrel) && !isNaN(d.G3) && !isNaN(d.Dalc)
+            ); // Filter out only invalid data
+        }
+        
+        // Function to initialize or update all charts
+        async function initializeDashboard() {
+            // Get container dimensions
+            const container1 = document.getElementById('chart-1');
+            const container2 = document.getElementById('chart-2');
+            const container3 = document.getElementById('chart-3');
+            
+            // Clear existing charts if any
+            d3.select('#chart-1').selectAll('*').remove();
+            d3.select('#chart-2').selectAll('*').remove();
+            d3.select('#chart-3').selectAll('*').remove();
+            
+            // Load data
+            const data = await loadData();
+            if (!data) {
+                console.error('Failed to load data');
+                return;
+            }
+            
+            // Process data for Chart 1
+            const chart1Data = processChart1Data(data);
+            
+            // Process data for Chart 2
+            const chart2Data = processChart2Data(data);
+            
+            // Process data for Chart 3
+            const chart3Data = processChart3Data(data);
+            
+            // Initialize Chart 1: Bar chart for Study Time vs Math Grade
+            if (!charts.chart1) {
+                charts.chart1 = new BarChart();
+            }
+            charts.chart1.render(
+                '#chart-1',
+                container1.clientWidth,
+                container1.clientHeight,
+                chart1Data
+            );
+            
+            // Initialize Chart 2: Scatterplot for Age vs Math Grade
+            if (!charts.chart2) {
+                charts.chart2 = new ScatterPlot();
+            }
+            charts.chart2.render(
+                '#chart-2',
+                container2.clientWidth,
+                container2.clientHeight,
+                chart2Data
+            );
+            
+            // Initialize Chart 3: Parallel Coordinates
+            if (!charts.chart3) {
+                charts.chart3 = new ParallelCoordinates();
+            }
+            charts.chart3.render(
+                '#chart-3',
+                container3.clientWidth,
+                container3.clientHeight,
+                chart3Data
+            );
+            
+            console.log('Dashboard initialized');
+            console.log('Container 1 dimensions:', container1.clientWidth, 'x', container1.clientHeight);
+            console.log('Container 2 dimensions:', container2.clientWidth, 'x', container2.clientHeight);
+            console.log('Container 3 dimensions:', container3.clientWidth, 'x', container3.clientHeight);
+        }
+        
+        // Debounce function to limit resize event frequency
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Handle window resize
+        const handleResize = debounce(() => {
+            console.log('Window resized, updating dashboard...');
+            initializeDashboard();
+        }, 250);
+        
+        // Add resize listener
+        window.addEventListener('resize', handleResize);
+        
+        // Initialize dashboard when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeDashboard();
+        });
     </script>
 
 </body>
