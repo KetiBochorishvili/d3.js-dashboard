@@ -3,196 +3,245 @@
 <html>
 
 <head>
+    <!-- Set character encoding to UTF-8 for proper text display -->
     <meta charset="UTF-8">
+    <!-- Page title that appears in browser tab -->
     <title>Chart</title>
+    <!-- Link to favicon icon -->
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <!-- Ensure responsive design on mobile devices -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Link to external CSS stylesheet for styling -->
     <link rel="stylesheet" href="styles/index.css" />
 </head>
 
 <body translate="no">
 
+    <!-- Main page container wrapper -->
     <div class="page-container">
+        <!-- Dashboard container for all visualizations -->
         <div class="dashboard-container">
             <!-- Top Row: Two containers side by side -->
             <div class="top-row">
+                <!-- Container for first chart (bar chart) -->
                 <div class="chart-container" id="container-1">
+                    <!-- Title for chart 1 -->
                     <h2 class="chart-title">Weekly Study Time vs Average Math Grade</h2>
+                    <!-- Content area where chart 1 will be rendered -->
                     <div class="chart-content" id="chart-1"></div>
                 </div>
+                <!-- Container for second chart (scatterplot) -->
                 <div class="chart-container" id="container-2">
+                    <!-- Title for chart 2 -->
                     <h2 class="chart-title">Number of School Absences vs Math Final Grade</h2>
+                    <!-- Content area where chart 2 will be rendered -->
                     <div class="chart-content" id="chart-2"></div>
                 </div>
             </div>
             <!-- Bottom Row: One full-width container -->
             <div class="bottom-row">
+                <!-- Container for third chart (parallel coordinates) -->
                 <div class="chart-container" id="container-3">
+                    <!-- Title for chart 3 -->
                     <h2 class="chart-title">Behavioral Patterns by Alcohol Consumption</h2>
+                    <!-- Content area where chart 3 will be rendered -->
                     <div class="chart-content" id="chart-3"></div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Load D3.js library version 7 for data visualization -->
     <script src="libs/d3.v7.min.js"></script>
+    <!-- Load custom D3 chart utility script (if needed) -->
     <script src="scripts/d3chart.js"></script>
+    <!-- Load Chart 1 class definition (bar chart) -->
     <script src="scripts/chart1.js"></script>
+    <!-- Load Chart 2 class definition (scatterplot) -->
     <script src="scripts/chart2.js"></script>
+    <!-- Load Chart 3 class definition (parallel coordinates) -->
     <script src="scripts/chart3.js"></script>
 
     <script>
         // Dashboard initialization and resize handling
-        let charts = {};
-        let rawData = null; // Store loaded data globally
         
-        // Load CSV data once
+        // Object to store chart instances for all three visualizations
+        let charts = {};
+        
+        // Variable to store loaded CSV data globally to avoid reloading
+        let rawData = null;
+        
+        // Function to load CSV data once and cache it
         async function loadData() {
+            // Check if data is already loaded
             if (!rawData) {
                 try {
+                    // Load student math performance data from CSV file
                     rawData = await d3.csv('student-mat.csv');
+                    // Log success message with number of rows loaded
                     console.log('Data loaded successfully:', rawData.length, 'rows');
                 } catch (error) {
+                    // Log error if data loading fails
                     console.error('Error loading CSV data:', error);
                 }
             }
+            // Return the cached data
             return rawData;
         }
         
-        // Process data for Chart 1: Average G3 by Study Time
+        // Process data for Chart 1: Bar chart showing average G3 by study time
         function processChart1Data(data) {
+            // Use d3.rollup to group data by studytime and calculate mean G3 for each group
             const groupedData = d3.rollup(
-                data,
-                v => d3.mean(v, d => +d.G3), // Calculate mean of G3
-                d => +d.studytime // Group by studytime
+                data,                           // Input data array
+                v => d3.mean(v, d => +d.G3),   // Reducer: calculate mean of G3 values
+                d => +d.studytime               // Key: group by studytime field
             );
             
+            // Convert Map to array of objects and sort by studytime
             return Array.from(groupedData, ([studytime, avgG3]) => ({
-                studytime: studytime,
-                avgG3: avgG3
-            })).sort((a, b) => a.studytime - b.studytime);
+                studytime: studytime,           // Study time category (1-4)
+                avgG3: avgG3                    // Average final grade for this category
+            })).sort((a, b) => a.studytime - b.studytime); // Sort ascending by studytime
         }
         
-        // Process data for Chart 2: Scatterplot of absences vs G3 by travel time
+        // Process data for Chart 2: Scatterplot showing relationship between absences and grades
         function processChart2Data(data) {
+            // Map each data point to include necessary fields
             return data.map(d => ({
-                absences: +d.absences,
-                G3: +d.G3,
-                traveltime: +d.traveltime,
-                traveltimeGroup: (+d.traveltime === 1 || +d.traveltime === 2) ? 'Close' : 'Far' // Close if 1 or 2, Far if 3 or 4
-            })).filter(d => !isNaN(d.absences) && !isNaN(d.G3) && !isNaN(d.traveltime)); // Filter out invalid data
+                absences: +d.absences,          // Number of absences (convert to number)
+                G3: +d.G3,                      // Final grade (convert to number)
+                traveltime: +d.traveltime,      // Travel time to school (convert to number)
+                // Create categorical group: "Close" if travel time is 1-2, "Far" if 3-4
+                traveltimeGroup: (+d.traveltime === 1 || +d.traveltime === 2) ? 'Close' : 'Far'
+            })).filter(d => !isNaN(d.absences) && !isNaN(d.G3) && !isNaN(d.traveltime)); // Remove rows with invalid numbers
         }
         
-        // Process data for Chart 3: Parallel Coordinates
+        // Process data for Chart 3: Parallel coordinates showing multiple dimensions by alcohol consumption
         function processChart3Data(data) {
+            // Map each student record to include all dimensions needed for parallel coordinates
             return data.map(d => ({
-                health: +d.health,
-                studytime: +d.studytime,
-                absences: +d.absences,
-                failures: +d.failures,
-                famrel: +d.famrel,
-                G3: +d.G3, // Add G3 as a dimension
-                Dalc: +d.Dalc, // Keep for color coding
-                sex: d.sex,
-                address: d.address
+                health: +d.health,              // Current health status (1-5)
+                studytime: +d.studytime,        // Weekly study time category (1-4)
+                absences: +d.absences,          // Number of school absences (0-93)
+                failures: +d.failures,          // Number of past class failures
+                famrel: +d.famrel,              // Quality of family relationships (1-5)
+                G3: +d.G3,                      // Final grade (0-20) - added as dimension
+                Dalc: +d.Dalc,                  // Daily alcohol consumption (1-5) - used for color coding
+                sex: d.sex,                     // Student gender (M/F)
+                address: d.address              // Home address type (U=urban, R=rural)
             })).filter(d => 
+                // Filter out rows where any numeric value is NaN (invalid)
                 !isNaN(d.health) && !isNaN(d.studytime) && !isNaN(d.absences) && 
                 !isNaN(d.failures) && !isNaN(d.famrel) && !isNaN(d.G3) && !isNaN(d.Dalc)
-            ); // Filter out only invalid data
+            );
         }
         
-        // Function to initialize or update all charts
+        // Main function to initialize or update all three charts on the dashboard
         async function initializeDashboard() {
-            // Get container dimensions
+            // Get DOM references to the three chart container elements
             const container1 = document.getElementById('chart-1');
             const container2 = document.getElementById('chart-2');
             const container3 = document.getElementById('chart-3');
             
-            // Clear existing charts if any
+            // Clear any existing SVG elements from previous renders
             d3.select('#chart-1').selectAll('*').remove();
             d3.select('#chart-2').selectAll('*').remove();
             d3.select('#chart-3').selectAll('*').remove();
             
-            // Load data
+            // Load data using the loadData function (cached if already loaded)
             const data = await loadData();
+            // Check if data loading failed
             if (!data) {
                 console.error('Failed to load data');
-                return;
+                return; // Exit function if no data available
             }
             
-            // Process data for Chart 1
+            // Process raw data for Chart 1 (aggregates by study time)
             const chart1Data = processChart1Data(data);
             
-            // Process data for Chart 2
+            // Process raw data for Chart 2 (individual data points)
             const chart2Data = processChart2Data(data);
             
-            // Process data for Chart 3
+            // Process raw data for Chart 3 (multi-dimensional data)
             const chart3Data = processChart3Data(data);
             
-            // Initialize Chart 1: Bar chart for Study Time vs Math Grade
+            // Initialize Chart 1: Bar chart showing study time vs average math grade
             if (!charts.chart1) {
+                // Create new BarChart instance if it doesn't exist
                 charts.chart1 = new BarChart();
             }
+            // Render chart with container ID, dimensions, and processed data
             charts.chart1.render(
-                '#chart-1',
-                container1.clientWidth,
-                container1.clientHeight,
-                chart1Data
+                '#chart-1',                    // CSS selector for chart container
+                container1.clientWidth,        // Current width of container
+                container1.clientHeight,       // Current height of container
+                chart1Data                     // Processed data for this chart
             );
             
-            // Initialize Chart 2: Scatterplot for Age vs Math Grade
+            // Initialize Chart 2: Scatterplot showing absences vs final grade
             if (!charts.chart2) {
+                // Create new ScatterPlot instance if it doesn't exist
                 charts.chart2 = new ScatterPlot();
             }
+            // Render chart with container ID, dimensions, and processed data
             charts.chart2.render(
-                '#chart-2',
-                container2.clientWidth,
-                container2.clientHeight,
-                chart2Data
+                '#chart-2',                    // CSS selector for chart container
+                container2.clientWidth,        // Current width of container
+                container2.clientHeight,       // Current height of container
+                chart2Data                     // Processed data for this chart
             );
             
-            // Initialize Chart 3: Parallel Coordinates
+            // Initialize Chart 3: Parallel coordinates showing behavioral patterns
             if (!charts.chart3) {
+                // Create new ParallelCoordinates instance if it doesn't exist
                 charts.chart3 = new ParallelCoordinates();
             }
+            // Render chart with container ID, dimensions, and processed data
             charts.chart3.render(
-                '#chart-3',
-                container3.clientWidth,
-                container3.clientHeight,
-                chart3Data
+                '#chart-3',                    // CSS selector for chart container
+                container3.clientWidth,        // Current width of container
+                container3.clientHeight,       // Current height of container
+                chart3Data                     // Processed data for this chart
             );
             
+            // Log success message to console
             console.log('Dashboard initialized');
+            // Log dimensions of each container for debugging
             console.log('Container 1 dimensions:', container1.clientWidth, 'x', container1.clientHeight);
             console.log('Container 2 dimensions:', container2.clientWidth, 'x', container2.clientHeight);
             console.log('Container 3 dimensions:', container3.clientWidth, 'x', container3.clientHeight);
         }
         
-        // Debounce function to limit resize event frequency
+        // Debounce function to limit how often a function can be called
+        // This prevents excessive re-rendering during window resize
         function debounce(func, wait) {
-            let timeout;
+            let timeout;  // Variable to store timeout ID
+            // Return a new function that wraps the original
             return function executedFunction(...args) {
+                // Function to execute after delay
                 const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
+                    clearTimeout(timeout);      // Clear the timeout
+                    func(...args);              // Call the original function
                 };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
+                clearTimeout(timeout);          // Clear any existing timeout
+                timeout = setTimeout(later, wait);  // Set new timeout
             };
         }
         
-        // Handle window resize
+        // Create debounced version of dashboard update for resize events
+        // Waits 250ms after last resize event before re-rendering
         const handleResize = debounce(() => {
             console.log('Window resized, updating dashboard...');
-            initializeDashboard();
-        }, 250);
+            initializeDashboard();  // Re-initialize all charts with new dimensions
+        }, 250);  // 250 milliseconds delay
         
-        // Add resize listener
+        // Attach resize event listener to window
         window.addEventListener('resize', handleResize);
         
-        // Initialize dashboard when DOM is ready
+        // Initialize dashboard when DOM content is fully loaded
         document.addEventListener('DOMContentLoaded', () => {
-            initializeDashboard();
+            initializeDashboard();  // Call function to load data and render all charts
         });
     </script>
 

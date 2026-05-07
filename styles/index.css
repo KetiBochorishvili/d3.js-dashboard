@@ -1,129 +1,148 @@
+/* Universal selector - Reset default margins, padding, and set box-sizing for all elements */
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  margin: 0;              /* Remove default margins */
+  padding: 0;             /* Remove default padding */
+  box-sizing: border-box; /* Include padding and border in element's total width/height */
 }
 
+/* Body styling - Overall page appearance */
 body {
-  background-color: #FAFAFA;
-  font-family: 'Helvetica', Arial, sans-serif;
-  padding: 20px;
+  background-color: #FAFAFA;  /* Light gray background color */
+  font-family: 'Helvetica', Arial, sans-serif;  /* Font stack with fallbacks */
+  padding: 20px;              /* Add spacing around page edges */
 }
 
+/* SVG elements - White background for all charts */
 svg {
-  background-color: #FFFFFF;
+  background-color: #FFFFFF;  /* White background for visualization area */
 }
 
+/* Main page container - Centers content and sets maximum width */
 .page-container {
-  width: 100%;
-  max-width: 1600px;
-  margin: 0 auto;
+  width: 100%;              /* Full width of viewport */
+  max-width: 1600px;        /* Maximum width to prevent excessive stretching on large screens */
+  margin: 0 auto;           /* Center horizontally */
 }
 
+/* Dashboard container - Flexbox layout for charts arranged vertically */
 .dashboard-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 100%;
-  height: 100vh;
-  max-height: calc(100vh - 40px);
+  display: flex;            /* Use flexbox layout */
+  flex-direction: column;   /* Stack children vertically */
+  gap: 20px;                /* Space between rows */
+  width: 100%;              /* Full width of parent */
+  height: 100vh;            /* Full viewport height */
+  max-height: calc(100vh - 40px);  /* Account for body padding (20px top + 20px bottom) */
 }
 
-/* Top row with two containers */
+/* Top row styling - Contains two charts side by side */
 .top-row {
-  display: flex;
-  gap: 20px;
-  flex: 1;
-  min-height: 0;
+  display: flex;            /* Use flexbox for horizontal layout */
+  gap: 20px;                /* Space between the two charts */
+  flex: 1;                  /* Take equal space with bottom row */
+  min-height: 0;            /* Allow flex children to shrink below content size */
 }
 
+/* Chart containers within top row - Each takes half the width */
 .top-row .chart-container {
-  flex: 1;
-  min-width: 0;
+  flex: 1;                  /* Equal width distribution */
+  min-width: 0;             /* Allow shrinking below content size */
 }
 
-/* Bottom row with one full-width container */
+/* Bottom row styling - Contains one full-width chart */
 .bottom-row {
-  display: flex;
-  flex: 1;
-  min-height: 0;
+  display: flex;            /* Use flexbox layout */
+  flex: 1;                  /* Take equal space with top row */
+  min-height: 0;            /* Allow flex children to shrink below content size */
 }
 
+/* Chart container within bottom row - Full width */
 .bottom-row .chart-container {
-  flex: 1;
-  width: 100%;
+  flex: 1;                  /* Take all available space */
+  width: 100%;              /* Full width */
 }
 
-/* Chart container styling */
+/* Generic chart container styling - Visual appearance */
 .chart-container {
-  background-color: #FFFFFF;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  background-color: #FFFFFF;  /* White background for chart area */
+  border-radius: 8px;         /* Rounded corners */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);  /* Subtle shadow for depth */
+  padding: 20px;              /* Internal spacing */
+  display: flex;              /* Use flexbox for internal layout */
+  flex-direction: column;     /* Stack title and content vertically */
+  overflow: hidden;           /* Hide any overflow content */
 }
 
+/* Chart title styling */
 .chart-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #2C3E50;
-  margin-bottom: 15px;
-  text-align: center;
-  flex-shrink: 0;
+  font-size: 18px;          /* Title font size */
+  font-weight: 600;         /* Semi-bold weight */
+  color: #2C3E50;           /* Dark blue-gray color */
+  margin-bottom: 15px;      /* Space below title */
+  text-align: center;       /* Center align text */
+  flex-shrink: 0;           /* Prevent title from shrinking */
 }
 
+/* Chart content area - Where D3 visualizations are rendered */
 .chart-content {
-  flex: 1;
-  min-height: 0;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex: 1;                  /* Take all remaining space after title */
+  min-height: 0;            /* Allow shrinking below content size */
+  position: relative;       /* Positioning context for absolute children */
+  display: flex;            /* Use flexbox for centering */
+  align-items: center;      /* Center vertically */
+  justify-content: center;  /* Center horizontally */
 }
 
+/* SVG elements within chart content - Responsive sizing */
 .chart-content svg {
-  max-width: 100%;
-  max-height: 100%;
+  max-width: 100%;          /* Don't exceed container width */
+  max-height: 100%;         /* Don't exceed container height */
 }
 
-/* Responsive design for smaller screens */
+/* Responsive design for tablet screens (max-width: 1024px) */
 @media (max-width: 1024px) {
+  /* Stack top row charts vertically instead of side by side */
   .top-row {
-    flex-direction: column;
+    flex-direction: column;  /* Change from horizontal to vertical layout */
   }
   
+  /* Allow dashboard to grow beyond viewport height on small screens */
   .dashboard-container {
-    height: auto;
-    max-height: none;
+    height: auto;            /* Auto height instead of viewport height */
+    max-height: none;        /* Remove maximum height restriction */
   }
   
+  /* Set minimum height for chart containers */
   .chart-container {
-    min-height: 400px;
+    min-height: 400px;       /* Ensure charts have adequate height */
   }
 }
 
+/* Responsive design for mobile screens (max-width: 768px) */
 @media (max-width: 768px) {
+  /* Reduce body padding on smaller screens */
   body {
-    padding: 10px;
+    padding: 10px;           /* Less padding to maximize screen space */
   }
   
+  /* Reduce gap between chart rows */
   .dashboard-container {
-    gap: 10px;
+    gap: 10px;               /* Smaller vertical spacing */
   }
   
+  /* Reduce gap between charts in top row */
   .top-row {
-    gap: 10px;
+    gap: 10px;               /* Smaller horizontal spacing */
   }
   
+  /* Adjust chart container spacing and size */
   .chart-container {
-    padding: 15px;
-    min-height: 350px;
+    padding: 15px;           /* Less internal padding */
+    min-height: 350px;       /* Smaller minimum height for mobile */
   }
   
+  /* Reduce title font size on mobile */
   .chart-title {
-    font-size: 16px;
-    margin-bottom: 10px;
+    font-size: 16px;         /* Smaller title text */
+    margin-bottom: 10px;     /* Less space below title */
   }
 }
